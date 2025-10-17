@@ -32,7 +32,7 @@ public class PlayerController : MonoBehaviour
             anim.SetFloat("LastInputY", moveInput.y);
         }
 
-        moveInput = context.ReadValue<Vector2>();
+        moveInput = context.ReadValue<Vector2>(); // Must be after if statement for idle to work
         anim.SetFloat("InputX", moveInput.x);
         anim.SetFloat("InputY", moveInput.y);
     }
