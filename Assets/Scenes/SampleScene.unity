@@ -14326,7 +14326,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   speed: 4
   maxSpottedTime: 1.5
-  maxChaseTimer: 0
+  maxChaseTimer: 2
   viewDistance: 7
   viewAngle: 30
   obstacleLayer:
