@@ -14167,6 +14167,8 @@ GameObject:
   - component: {fileID: 1296394854}
   - component: {fileID: 1296394856}
   - component: {fileID: 1296394855}
+  - component: {fileID: 1296394858}
+  - component: {fileID: 1296394857}
   m_Layer: 0
   m_Name: Skeleton
   m_TagString: Untagged
@@ -14324,17 +14326,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23bd2b0b713b38544a08f73adf61e3f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  speed: 4
-  maxSpottedTime: 1.5
-  maxChaseTimer: 0
-  viewDistance: 7
-  viewAngle: 30
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 256
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 128
+  maxSpottedTime: 1
+  maxChaseTime: 2
+  maxSearchTime: 2
 --- !u!95 &1296394856
 Animator:
   serializedVersion: 7
@@ -14357,6 +14351,39 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1296394857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1296394850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90c73740680ca9441b874faaa03286b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovement
+  moveSpeed: 4
+--- !u!114 &1296394858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1296394850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc59bd7d690478244a3386ef69ff2032, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyVision
+  viewDistance: 8
+  viewAngle: 30
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &1307010706
 GameObject:
   m_ObjectHideFlags: 0

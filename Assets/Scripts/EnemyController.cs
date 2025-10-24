@@ -1,88 +1,203 @@
+using System.Collections;
 using UnityEngine;
 
 public class EnemyController : MonoBehaviour
 {
-    [SerializeField] float speed;
+    [Header("Behavior Timers")]
     [SerializeField] float maxSpottedTime;
-    [SerializeField] float maxChaseTimer;
+    [SerializeField] float maxChaseTime;
+    [SerializeField] float maxSearchTime;
 
-    [Header("FOV Cone")]
-    [SerializeField] float viewDistance = 8f;
-    [SerializeField] float viewAngle = 30f;
-    [SerializeField] LayerMask obstacleLayer;
-    [SerializeField] LayerMask playerLayer;
+    [Header("UI Components")]
+    //[SerializeField] GameObject UIDetected;
+    //[SerializeField] GameObject UIFound;     
 
-    private Transform playerPosition;
-    private Animator anim;
-    private Rigidbody2D rb;
-    private float chaseTimer;
+    private EnemyMovement movement;
+    private EnemyVision vision;
+
+    private EnemyState currentState;
+    private Coroutine searchCoroutine;
+
+    // Timers
     private float spottedTimer;
+    private float chaseTimer;
+
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
+        movement = GetComponent<EnemyMovement>();
+        vision = GetComponent<EnemyVision>();
+    }
+
+    void Start()
+    {
+        ChangeState(EnemyState.Idle);
     }
 
     void Update()
     {
-        CheckForPlayer();
+        bool seesPlayer = vision.CanSeePlayer();
+        HandleStateLogic(seesPlayer);        
     }
 
-    void CheckForPlayer()
+    void HandleStateLogic(bool seesPlayer)
     {
-        Collider2D[] targets = Physics2D.OverlapCircleAll(transform.position, viewDistance, playerLayer);
-
-        if (playerPosition)
+        switch (currentState)
         {
-            ChasePlayer();
+            case EnemyState.Idle:
+                HandleIdle(seesPlayer);
+                break;
+
+            case EnemyState.Chasing:
+                HandleChasing(seesPlayer);
+                break;
+
+            case EnemyState.Searching:
+                HandleSearching(seesPlayer);
+                break;
         }
+    }
 
-        foreach (Collider2D target in targets)
+    void HandleIdle(bool seesPlayer)
+    {
+        movement.StopMoving();
+        //UIDetected.SetActive(false);
+
+        if (seesPlayer)
         {
-            Vector2 forward = -transform.up;
-            Vector2 dirToTarget = (target.transform.position - transform.position).normalized;
-            float angleToTarget = Vector2.Angle(forward, dirToTarget);
+            spottedTimer += Time.deltaTime;
 
-            if (angleToTarget < viewAngle)
+            if (spottedTimer >= maxSpottedTime)
             {
-                // Check if there are obstacles blocking view
-                RaycastHit2D hit = Physics2D.Raycast(transform.position, dirToTarget, viewDistance, obstacleLayer);
+                ChangeState(EnemyState.Chasing);
+            }
+        }
+        else
+        {
+            spottedTimer = 0;
+        }
+    }
+    
+    void HandleChasing(bool seesPlayer)
+    {
+        if (seesPlayer)
+        {
+            chaseTimer = 0f; // Reset since enemy still sees player
+            movement.MoveTowards(vision.PlayerTransform.position);
+            //UIFound.SetActive(true);
+        }
+        else
+        {
+            chaseTimer += Time.deltaTime;
 
-                if (hit.collider == null || hit.collider == target)
-                {
-                    playerPosition = target.transform;
-                    Debug.Log("Player spotted!");
-                }
+            // Keep moving toward last known player position
+            movement.MoveTowards(vision.LastKnownPlayerPos);
+
+            if (chaseTimer >= maxChaseTime)
+            {
+                ChangeState(EnemyState.Searching);
             }
         }
     }
 
-    void ChasePlayer()
+   void HandleSearching(bool seesPlayer)
     {
-        Vector2 direction = (playerPosition.transform.position - transform.position).normalized;
-        rb.linearVelocity = direction * speed;
-        anim.SetBool("isWalking", true);
-        UpdateAnimation(direction);
-    }
 
-    void UpdateAnimation(Vector2 direction)
-    {
-        anim.SetFloat("MoveX", direction.x);
-        anim.SetFloat("MoveY", direction.y);
-    }
+    }    
     
-    void OnDrawGizmosSelected()
+    void ChangeState(EnemyState newState)
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, viewDistance);
+        if (currentState == newState)
+            return;
 
-        Vector2 forward = -transform.up;
-        Vector3 leftBoundary = Quaternion.Euler(0, 0, viewAngle) * forward * viewDistance;
-        Vector3 rightBoundary = Quaternion.Euler(0, 0, -viewAngle) * forward * viewDistance;
+        currentState = newState;
 
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + leftBoundary);
-        Gizmos.DrawLine(transform.position, transform.position + rightBoundary);
+        // stop any running search coroutine
+        if (searchCoroutine != null)
+        {
+            StopCoroutine(searchCoroutine);
+            searchCoroutine = null;
+        }
+
+        switch (newState)
+        {
+            case EnemyState.Idle:
+                movement.StopMoving();
+                //UIFound.SetActive(false);
+                spottedTimer = 0f;
+                chaseTimer = 0f;
+                break;
+
+            case EnemyState.Chasing:
+                //UIFound.SetActive(true);
+                break;
+
+            case EnemyState.Searching:
+                //UIFound.SetActive(false);
+                searchCoroutine = StartCoroutine(SearchRoutine());
+                break;
+        }
     }
+
+    IEnumerator SearchRoutine()
+    {
+        float elapsedTime = 0f;
+        float rotationSpeed = 90f; // degrees per second
+        float maxAngle = 60f; // how far left/right to rotate
+        float currentAngle = 0f;
+        float direction = 1f; // 1 for clockwise, -1 for counterclockwise
+
+        // Move toward last known position
+        while (Vector2.Distance(transform.position, vision.LastKnownPlayerPos) > 0.1f)
+        {
+            movement.MoveTowards(vision.LastKnownPlayerPos);
+            yield return null;
+        }
+
+        // Stop movement and record the direction enemy arrived with
+        movement.StopMoving();
+        movement.SetFacingDirection((vision.LastKnownPlayerPos - (Vector2)transform.position).normalized);
+        Vector2 baseFacing = movement.FacingDirection;
+        yield return new WaitForSeconds(0.2f); // brief pause before scanning
+
+        // Rotate back and forth to search
+        while (elapsedTime < maxSearchTime)
+        {
+            elapsedTime += Time.deltaTime;
+
+            currentAngle += rotationSpeed * direction * Time.deltaTime;
+
+            if (Mathf.Abs(currentAngle) >= maxAngle)
+            {
+                // Flip direction smoothly at the edges
+                currentAngle = Mathf.Clamp(currentAngle, -maxAngle, maxAngle);
+                direction *= -1f;
+            }
+
+            // Rotate around the *base facing direction* (the one from when search began)
+            Vector2 sweepFacing = Quaternion.Euler(0, 0, currentAngle) * baseFacing;
+            movement.SetFacingDirection(sweepFacing);
+
+            // Detect player mid-sweep
+            if (vision.CanSeePlayer())
+            {
+                ChangeState(EnemyState.Chasing);
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        // Return to original facing before going idle
+        movement.SetFacingDirection(baseFacing);
+        ChangeState(EnemyState.Idle);
+    }
+}
+
+public enum EnemyState
+{
+    Idle,
+    PlayerDetected,
+    Chasing,
+    Searching
 }
