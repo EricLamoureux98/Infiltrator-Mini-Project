@@ -15,6 +15,10 @@ public class EnemyController : MonoBehaviour
     [SerializeField] LayerMask obstacleLayer;
     [SerializeField] LayerMask playerLayer;
 
+    [Header("UI Components")]
+    [SerializeField] GameObject UIDetected;
+    [SerializeField] GameObject UIFound;     
+
     // Components
     private Transform playerTransform;
     private Animator anim;
@@ -106,14 +110,16 @@ public class EnemyController : MonoBehaviour
     {
         if (isDetected)
         {
+            UIDetected.SetActive(true);
             spottedTimer += Time.deltaTime;
             if (spottedTimer >= maxSpottedTime)
             {
                 ChangeState(EnemyState.Chasing);
-            }          
+            }
         }
         else
         {
+            UIDetected.SetActive(false);
             spottedTimer = 0f;
             if (enemyState == EnemyState.Chasing)
             {
