@@ -13,6 +13,7 @@ public class EnemyMovement : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
     }
 
     public void MoveTowards(Vector2 target)
